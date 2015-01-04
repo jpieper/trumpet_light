@@ -6,12 +6,16 @@
 
 static int32_t g_mic_filter;
 static int16_t g_mic_last_value;
+static int32_t g_mic_filtered_value;
 
 static int32_t g_mic_running_power;
 static int32_t g_mic_last_power;
 static int32_t g_mic_filtered_power;
 static int32_t g_mic_max_power;
 static int16_t g_cycle_count;
+static int16_t g_idle_count;
+
+#define MAX_IDLE_COUNT 10000
 
 void mic_init(void) {
   // Enable the PLL.
@@ -19,6 +23,8 @@ void mic_init(void) {
 
   // Configure Timer 1 for PWM out.
 
+  TC1H = 0x3;
+  OCR1C = 0xff;
   TCCR1A = (1 << COM1B1) | (1 << PWM1B); // Fast PWM COM1B connected (OCR1B)
   TCCR1B = 0x1; // CK/1
   TCCR1D = 0x00; // fast PWM
@@ -54,8 +60,10 @@ void mic_poll(void) {
   int16_t average = g_mic_filter / 32;
 
   g_mic_last_value = current - average;
+  g_mic_filtered_value += g_mic_last_value;
+  g_mic_filtered_value = 2 * g_mic_filtered_value / 3;
 
-  g_mic_running_power += g_mic_last_value * g_mic_last_value;
+  g_mic_running_power += (g_mic_filtered_value / 4) * (g_mic_filtered_value / 4);
 }
 
 void mic_timer_update(void) {
@@ -84,12 +92,27 @@ void mic_timer_update(void) {
   } else {
     power -= 0x100;
   }
-  uint32_t ratio = 300 * power / g_mic_max_power;
-  if (ratio > 255) { ratio = 255; }
-  if (OCR1B != 0 && ratio == 0) {
-    g_mic_filtered_power = 0;
+  uint32_t ratio = 1300 * power / g_mic_max_power;
+  if (ratio > 1023) { ratio = 1023; }
+
+  if (ratio != 0) {
+    g_idle_count = 0;
   }
-  OCR1B = ratio;
+  if (ratio == 0 && g_idle_count < MAX_IDLE_COUNT) {
+    g_idle_count++;
+  }
+  if (g_idle_count >= MAX_IDLE_COUNT) {
+    /* Apply a small 1 Hz triangle wave pattern so that we know that
+     * the thing is on. */
+    if (g_cycle_count < 500) {
+      ratio = g_cycle_count / 5;
+    } else {
+      ratio = (1000 - g_cycle_count) / 5;
+    }
+  }
+
+  TC1H = ratio >> 8;
+  OCR1B = ratio & 0xff;
 }
 
 int32_t mic_last_power(void) {
