@@ -92,6 +92,10 @@ static uint8_t cmd_mic(char* extra_args, char* output, uint8_t output_len,
   uint32_t power = mic_last_power();
   uint16_to_hex(&output, power >> 16);
   uint16_to_hex(&output, power & 0xffff);
+  *output++ = ' ';
+  uint32_t max_power = mic_max_power();
+  uint16_to_hex(&output, max_power >> 16);
+  uint16_to_hex(&output, max_power & 0xffff);
   *output = 0;
   return 0;
 }
@@ -669,18 +673,13 @@ int main() {
 #endif
 
   PORTB = 0x00;
-  DDRB = (1 << 4);
+  DDRB = (1 << 3) | (1 << 4);
 
-  // Set up Timer 1 to match compare every 1ms.
-#if defined(__AVR_ATtiny85__)
-  OCR1C = 125;
-  TCCR1 = 0x80 | 0x06; // CTC on OCR1C, CK / 32
-  PCMSK = (1 << 5); // PB5 interrupt enable
-  GIMSK |= (1 << PCIE); // Enable
-#elif defined(__AVR_ATtiny861__)
-  OCR1A = 125;
-  TCCR1A = 0x02; // CTC on OCR1A
-  TCCR1B = 0x06; // CK / 32 (32 * 125 == 4000)
+  // Set up Timer 0 to match compare about every 1ms.
+#if defined(__AVR_ATtiny861__)
+  OCR0A = 125;
+  TCCR0A = 0x01; // CTC on OCR1A
+  TCCR0B = 0x03; // CK / 64 (64 * 125 ~= 8000)
   PCMSK1 = (1 << 5); // Set PB5 interrupt enable.
   GIMSK |= (1 << PCIE1); // Enable
 #else
@@ -723,8 +722,8 @@ int main() {
       }
     }
 
-    if (TIFR & (1 << OCF1A)) {
-      TIFR |= (1 << OCF1A);
+    if (TIFR & (1 << OCF0A)) {
+      TIFR |= (1 << OCF0A);
       g_timer++;
       stream_timer_update();
       mic_timer_update();
