@@ -14,6 +14,7 @@
 #include <ctype.h>
 #include <stdio.h>
 
+#include "mic.h"
 #include "util.h"
 #include "vcs_version.h"
 
@@ -82,6 +83,18 @@ static uint8_t cmd_stl(char* extra_args, char* output, uint8_t output_len,
 static uint8_t cmd_stg(char* extra_args, char* output, uint8_t output_len,
                        uint8_t stream);
 static uint16_t stream_list_bitmask(void);
+
+static uint8_t cmd_mic(char* extra_args, char* output, uint8_t output_len,
+                       uint8_t stream) {
+  *output++ = ' ';
+  uint16_to_hex(&output, mic_last_value());
+  *output++ = ' ';
+  uint32_t power = mic_last_power();
+  uint16_to_hex(&output, power >> 16);
+  uint16_to_hex(&output, power & 0xffff);
+  *output = 0;
+  return 0;
+}
 
 static uint8_t cmd_ver(char* extra_args, char* output, uint8_t output_len,
                        uint8_t stream) {
@@ -292,6 +305,7 @@ static const struct fw_command_struct PROGMEM fw_command_table[] = {
   { "STE", cmd_ste, 0 },
   { "STL", cmd_stl, (1 << CMD_FLAGS_STREAMABLE) },
   { "STG", cmd_stg, 0 },
+  { "MIC", cmd_mic, (1 << CMD_FLAGS_STREAMABLE) },
   { "VER", cmd_ver, 0 },
   { "RST", cmd_rst, 0 },
   { "TMQ", cmd_tmq, (1 << CMD_FLAGS_STREAMABLE) },
@@ -651,7 +665,7 @@ int main() {
 
 #ifdef PORTA
   PORTA = 0x00;
-  DDRA = 0xff;
+  DDRA = 0x00;
 #endif
 
   PORTB = 0x00;
@@ -672,6 +686,8 @@ int main() {
 #else
 #error Unknown processor
 #endif
+
+  mic_init();
 
   char line_buf[32];
   uint8_t line_len = 0;
@@ -711,10 +727,12 @@ int main() {
       TIFR |= (1 << OCF1A);
       g_timer++;
       stream_timer_update();
+      mic_timer_update();
       g_main_loop_count = (uint16_t) (((uint32_t) g_main_loop_count) * 7 / 8);
     }
 
     stream_poll();
+    mic_poll();
   }
 }
 

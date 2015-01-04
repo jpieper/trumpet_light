@@ -1,6 +1,6 @@
 PROG=trumpet_light
 
-OBJS=util.o #i2c.o
+OBJS=mic.o util.o #i2c.o
 
 TRUMPET_DBG_FLAG = #-dbg
 UPDATE_VCS := $(shell ./revision_update.py vcs_version.h)
