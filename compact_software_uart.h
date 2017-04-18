@@ -1,5 +1,18 @@
 /** Copyright 2008-2014 Josh Pieper, jjp@pobox.com. */
 
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+
 #ifndef _COMPACT_SOFTWARE_UART_H_
 #define _COMPACT_SOFTWARE_UART_H_
 
@@ -43,7 +56,7 @@ static void software_uart_write_char(uint8_t val) {
     uint8_t cnt;
     // start the start bit
     UART_WRITE_PORT &= ~ (1 << UART_WRITE_BIT);
-    
+
     _delay_loop_1(UART_BAUD_TICKS / 3);
 
     for (cnt = 8; cnt; cnt--) {
@@ -64,6 +77,6 @@ static void software_uart_write_char(uint8_t val) {
 static void software_uart_write_string(char * c) {
     while (*c != 0) { software_uart_write_char(*c++); }
 }
-        
+
 
 #endif /* _COMPACT_SOFTWARE_UART_H_ */

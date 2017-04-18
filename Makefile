@@ -1,3 +1,17 @@
+# Copyright 2015-2017 Josh Pieper, jjp@pobox.com
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 PROG=trumpet_light
 
 OBJS=mic.o util.o #i2c.o
@@ -12,6 +26,7 @@ AVR_PART = attiny861
 #AVR_PART = attiny85
 
 CFLAGS= -mmcu=avr2 -D$(GCC_PART) -g -I../avr_include -Os -mcall-prologues -Winline -Wall -DF_CPU=8000000 -DTRUMPET_DBG_FLAG=\"$(TRUMPET_DBG_FLAG)\" -std=gnu99
+LINKFLAGS = -L /usr/lib/avr/lib/avr25 -lattiny861
 
 all : $(PROG).srec
 
@@ -20,16 +35,16 @@ clean :
 
 
 $(PROG).srec : $(PROG).out
-	avr-objcopy -j .text -O srec $(PROG).out $(PROG).srec 
+	avr-objcopy -j .text -O srec $(PROG).out $(PROG).srec
 	avr-objcopy -j .text -O ihex $(PROG).out $(PROG).hex
 
 $(PROG).out : $(PROG).o $(OBJS)
-	avr-gcc $(CFLAGS) $(PROG).o $(OBJS) -o $(PROG).out
+	avr-gcc $(CFLAGS) $(PROG).o $(OBJS) $(LINKFLAGS) -o $(PROG).out
 
 %.o : %.c
 	avr-gcc -c $(CFLAGS) $< -o $@
 
-load : $(PROG).srec
+load2 : $(PROG).srec
 	avrdude -p $(AVR_PART) -c avrispmkII -U flash:w:$(PROG).srec
 
 depend:
