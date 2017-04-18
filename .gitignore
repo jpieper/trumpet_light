@@ -1,0 +1,6 @@
+*.o
+*.out
+*.srec
+vcs_version.h
+*~
+*.hex
